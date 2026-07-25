@@ -1,294 +1,415 @@
-// =========================================================================
-// bw16_sensor.ino — BW16 Drone IoT Payload (IRL Real Flight Mode)
-// Vi điều khiển: Realtek AmebaD BW16 (RTL8720DN)
-// Cảm biến: DHT22 + MQ-135 + OLED SSD1306 + HW-PWM Servo + Buzzer + LED
-// =========================================================================
+// bw16_sensor.ino — BW16 Drone IoT Payload
+// DHT22 + MQ-135 + Servo + OLED → MQTT
 
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
-// Hardware PWM API — chống ngắt WiFi gây co giật Servo
-extern "C" {
-#include "pwmout_api.h"
-}
-#include <Wire.h>
+
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "secrets.h"
 
-// --- MQTT & Network Config ---
-char ssid[]             = SECRET_SSID;
-char pass[]             = SECRET_PASS;
+// --- Network Config ---
+const char* ssid        = SECRET_SSID;
+const char* password    = SECRET_PASS;
 const char* mqtt_server = "broker.hivemq.com";
-const char* topic_pub   = "iot102_drone/payload/sensors";
-const char* topic_sub   = "iot102_drone/control/payload";
+const char* topic_sensors  = "iot102_drone/payload/sensors";
+const char* topic_payload  = "iot102_drone/control/payload";
+const int   mqtt_port   = 1883;
 
 // --- Pin Definitions ---
-#define DHT_PIN         PA26
-#define MQ135_PIN       PB1
-#define BUZZER_PIN      PA15
-#define LED_RED_PIN     PA30
+#define DHT_PIN         PA30
+#define DHT_TYPE        DHT22
+#define MQ135_PIN       PB3
+
+
+#define BUZZER_PIN      PA14
+#define LED_PIN         PA15
 #define LED_GREEN_PIN   PA27
-#define SERVO_PIN_HW    PA_13
 
-// --- OLED SSD1306 (128x64 I2C) ---
-#define OLED_I2C_ADDR   0x3C
-Adafruit_SSD1306 display(128, 64, &Wire, -1);
+// --- OLED Config ---
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// --- Ngưỡng Cảnh báo & Chu kỳ ---
-#define CO2_THRESHOLD    600
-#define TEMP_THRESHOLD   40.0
-#define INTERVAL_DHT     2000
-#define INTERVAL_READ    200
-#define INTERVAL_PUB     1000
-#define RSSI_INTERVAL    5000
-#define MQ135_WARMUP_MS  10000  // Giảm xuống 10s để test ngay
+// --- Active Levels ---
+#define BUZZER_ACTIVE   LOW
+#define LED_ACTIVE      HIGH
 
-// --- Biến toàn cục ---
+#define BUZZER_ON       BUZZER_ACTIVE
+#define BUZZER_OFF      (!BUZZER_ACTIVE)
+#define LED_ON          LED_ACTIVE
+#define LED_OFF         (!LED_ACTIVE)
+
+// --- Thresholds & Constants ---
+const int   CO2_THRESHOLD      = 600;
+const float TEMP_THRESHOLD     = 35.0;
+const int   WIFI_MAX_RETRIES   = 30;
+const int   MQTT_MAX_RETRIES   = 5;
+const int   MQTT_RETRY_DELAY   = 3000;
+const int   CUSTOM_MQTT_KEEPALIVE = 60;
+const unsigned long MQ135_WARMUP_MS  = 30000;
+const uint8_t OLED_I2C_ADDR    = 0x3C;
+
+// --- MQTT Override State ---
+bool mqtt_buzzer_override = false;
+bool mqtt_buzzer_state    = false;
+bool mqtt_led_override    = false;
+bool mqtt_led_state       = false;
+
+// --- Objects ---
 WiFiClient   wifiClient;
 PubSubClient client(wifiClient);
-DHT          dht(DHT_PIN, DHT22);
-pwmout_t     servo_pwm;
+DHT          dht(DHT_PIN, DHT_TYPE);
+unsigned long lastMsg = 0;
+unsigned long lastOLEDUpdate = 0;
+const long    interval = 2000;
+const long    oledInterval = 200;
 
-unsigned long lastRead = 0, lastPub = 0, lastRssi = 0, lastDht = 0;
-float temp_val = 0.0, hum_val = 0.0;
-int   mq_val = 0, rssi_val = 0, servo_angle = 0;
-bool  env_alert = false, dht_ok = false;
-bool  ovr_buzzer = false, ovr_led = false;
-bool  state_buzzer = false, state_led = false;
+// Sensor globals
+float temp_val = 0.0;
+float hum_val  = 0.0;
+int   mq_raw_val = 0;
 
-// =========================================================================
-//  1. Điều khiển góc Servo (Hardware PWM)
-// =========================================================================
-void setServo(int angle) {
-    servo_angle = constrain(angle, 0, 180);
-    int pulse = map(servo_angle, 0, 180, 500, 2500);
-    pwmout_pulsewidth_us(&servo_pwm, pulse);
-    Serial.print("[SERVO] Angle: ");
-    Serial.print(servo_angle);
-    Serial.print("deg (");
-    Serial.print(pulse);
-    Serial.println("us)");
+bool  env_alert = false;
+
+// [FIX] Cache RSSI để tránh WiFi.RSSI() block 50ms mỗi 200ms → phá PWM servo
+int   cached_rssi = 0;
+unsigned long lastRssiUpdate = 0;
+const long    rssiInterval = 5000;  // Cập nhật RSSI mỗi 5 giây
+
+// ============================================================
+//  JSON Parser
+// ============================================================
+String parseJsonField(const String& json, const String& key) {
+    int keyIndex = json.indexOf("\"" + key + "\"");
+    if (keyIndex == -1) return "";
+    int colonIndex = json.indexOf(":", keyIndex);
+    if (colonIndex == -1) return "";
+
+    int valStartIndex = colonIndex + 1;
+    while (valStartIndex < json.length() && (json[valStartIndex] == ' ' || json[valStartIndex] == '\t' || json[valStartIndex] == '\r' || json[valStartIndex] == '\n')) {
+        valStartIndex++;
+    }
+    if (valStartIndex >= json.length()) return "";
+
+    if (json[valStartIndex] == '"') {
+        int valEndIndex = json.indexOf("\"", valStartIndex + 1);
+        if (valEndIndex == -1) return "";
+        return json.substring(valStartIndex + 1, valEndIndex);
+    } else {
+        int commaIndex = json.indexOf(",", valStartIndex);
+        int braceIndex = json.indexOf("}", valStartIndex);
+        int valEndIndex;
+        if (commaIndex == -1) valEndIndex = braceIndex;
+        else if (braceIndex == -1) valEndIndex = commaIndex;
+        else valEndIndex = min(commaIndex, braceIndex);
+
+        if (valEndIndex == -1) valEndIndex = json.length();
+        String val = json.substring(valStartIndex, valEndIndex);
+        val.trim();
+        return val;
+    }
 }
 
-// =========================================================================
-//  2. Hiển thị OLED Thực địa (Chuẩn Gọn Sạch — dùng print/println)
-// =========================================================================
-void updateOLED() {
+// ============================================================
+//  MQTT Callback
+// ============================================================
+void callback(char* topic, byte* payload, unsigned int length) {
+    String msgString;
+    msgString.reserve(length);
+    for (unsigned int i = 0; i < length; i++) {
+        msgString += (char)payload[i];
+    }
+
+    Serial.print("[MQTT] topic=");
+    Serial.print(topic);
+    Serial.print(" msg=");
+    Serial.println(msgString);
+
+    // ── Route theo topic ──────────────────────────────────────
+    String topicStr(topic);
+
+
+
+    // 2. Command từ Web Dashboard (trên topic_payload)
+    String command = parseJsonField(msgString, "command");
+
+    if (command == "BUZZER_ON") {
+        mqtt_buzzer_override = true;
+        mqtt_buzzer_state    = true;
+        digitalWrite(BUZZER_PIN, BUZZER_ON);
+        Serial.println("[CMD] BUZZER ON");
+    } else if (command == "BUZZER_OFF") {
+        mqtt_buzzer_override = true;
+        mqtt_buzzer_state    = false;
+        digitalWrite(BUZZER_PIN, BUZZER_OFF);
+        Serial.println("[CMD] BUZZER OFF");
+    } else if (command == "LED_ON") {
+        mqtt_led_override = true;
+        mqtt_led_state    = true;
+        digitalWrite(LED_PIN, LED_ON);
+        digitalWrite(LED_GREEN_PIN, LED_OFF);
+        Serial.println("[CMD] LED RED ON");
+    } else if (command == "LED_OFF") {
+        mqtt_led_override = true;
+        mqtt_led_state    = false;
+        digitalWrite(LED_PIN, LED_OFF);
+        digitalWrite(LED_GREEN_PIN, LED_ON);
+        Serial.println("[CMD] LED GREEN ON");
+    } else if (command == "DISARM") {
+        Serial.println("[CMD] DISARM (no local action)");
+    } else if (command == "RESET") {
+        mqtt_buzzer_override = false;
+        mqtt_led_override    = false;
+        Serial.println("[CMD] RESET auto mode");
+    }
+}
+
+// ============================================================
+//  WiFi Connect
+// ============================================================
+void connectWiFi() {
+    if (WiFi.status() == WL_CONNECTED) return;
+
+    Serial.print("[WiFi] Connecting to: ");
+    Serial.println(ssid);
+    WiFi.begin(const_cast<char*>(ssid), const_cast<char*>(password));
+
+    int retry = 0;
+    while (WiFi.status() != WL_CONNECTED && retry < WIFI_MAX_RETRIES) {
+        delay(500);
+        Serial.print(".");
+        retry++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println();
+        Serial.print("[WiFi] OK! IP: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println();
+        Serial.println("[WiFi] Failed. Will retry later.");
+    }
+}
+
+// ============================================================
+//  MQTT Connect
+// ============================================================
+void connectMQTT() {
+    int retry = 0;
+    while (!client.connected() && retry < MQTT_MAX_RETRIES) {
+        Serial.print("[MQTT] Connecting...");
+
+        String clientId = "DroneIoT_BW16_" + String(random(0xffff), HEX);
+        if (client.connect(clientId.c_str())) {
+            Serial.println(" OK!");
+            client.subscribe(topic_payload);   // lệnh từ Web
+            break;
+        } else {
+            Serial.print(" Failed, rc=");
+            Serial.print(client.state());
+            Serial.println(" retry in 3s...");
+            delay(MQTT_RETRY_DELAY);
+        }
+        retry++;
+    }
+}
+
+// ============================================================
+//  OLED Display
+// ============================================================
+void updateOLED(bool env_alert) {
     display.clearDisplay();
-    display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
 
-    // Dòng Header: Trạng thái & Sóng WiFi
-    display.setCursor(0, 0);
-    display.print("PAYLOAD ");
-    if (WiFi.status() == WL_CONNECTED) {
-        display.print("OK ");
-        display.print(rssi_val);
-        display.print("dBm");
-    } else {
-        display.print("OFFLINE");
-    }
-    display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
-
-    // Dòng 1 (y=14): Nhiệt độ & Độ ẩm
-    display.setCursor(0, 14);
-    display.print("Temp:");
-    if (dht_ok) {
-        display.print(temp_val, 1);
-        display.print("C H:");
-        display.print(hum_val, 0);
-        display.print("%");
-    } else {
-        display.print("--.-C H:--%");
-    }
-
-    // Dòng 2 (y=28): Khí Gas / CO2
-    display.setCursor(0, 28);
-    display.print("Gas: ");
-    display.print(mq_val);
-    display.print(" ");
+    // ═══════════════════════════════════════════════════
+    // VÙNG VÀNG (y = 0–15): Tiêu đề / Trạng thái cảnh báo
+    // ═══════════════════════════════════════════════════
+    display.setTextSize(1);
+    display.setCursor(0, 3);
     if (env_alert) {
-        display.print("[ALERT!]");
+        if (temp_val >= TEMP_THRESHOLD && mq_raw_val > CO2_THRESHOLD) {
+            display.print("** NGUY HIEM KEP! **");
+        } else if (temp_val >= TEMP_THRESHOLD) {
+            display.print("** CANH BAO NHIET! **");
+        } else {
+            display.print("** CANH BAO O NHIEM **");
+        }
     } else {
-        display.print("[SAFE]");
+        display.print("* DRONE IOT & TELEM *");
     }
 
-    // Dòng 3 (y=42): Trạng thái chốt Servo
-    display.setCursor(0, 42);
-    display.print("Servo:");
-    display.print(servo_angle);
-    display.print("deg ");
-    if (servo_angle > 45) {
-        display.print("[OPEN]");
+    // ═══════════════════════════════════════════════════
+    // VÙNG XANH (y = 16–63): Kết hợp Cảm biến
+    // ═══════════════════════════════════════════════════
+
+    // Dòng 1 (y = 16): Nhiệt độ
+    display.setCursor(0, 16);
+    display.print("Temp: ");
+    if (temp_val == 0.0 && hum_val == 0.0) {
+        display.print("--.-");
     } else {
-        display.print("[LOCK]");
+        display.print(temp_val, 1);
+    }
+    display.print(" C");
+    if (temp_val >= TEMP_THRESHOLD) display.print("!");
+
+    // Dòng 2 (y = 28): Độ ẩm
+    display.setCursor(0, 28);
+    display.print("Hum : ");
+    if (hum_val == 0.0 && temp_val == 0.0) {
+        display.print("--");
+    } else {
+        display.print(hum_val, 0);
+    }
+    display.print(" %");
+
+    // Dòng 3 (y = 40): Khí Gas / CO2
+    display.setCursor(0, 40);
+    display.print("Gas : ");
+    display.print(mq_raw_val);
+    display.print(" PPM");
+    if (env_alert) {
+        display.print(" (!)");
     }
 
-    // Dòng 4 (y=55): Địa chỉ IP
-    display.setCursor(0, 55);
-    display.print("IP:");
-    display.print(WiFi.localIP());
+    // Dòng 4 (y = 52): Sóng WiFi
+    display.setCursor(0, 52);
+    display.print("WiFi RSSI: ");
+    display.print(cached_rssi);
+    display.print(" dBm");
 
     display.display();
 }
 
-// =========================================================================
-//  3. Kết nối WiFi & MQTT
-// =========================================================================
-void connectWiFi() {
-    if (WiFi.status() == WL_CONNECTED) return;
-    Serial.print("[WIFI] Connecting to ");
-    Serial.print(ssid);
-    WiFi.begin(ssid, pass);
-    unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start < 8000) {
-        delay(300);
-        Serial.print(".");
-        digitalWrite(LED_GREEN_PIN, !digitalRead(LED_GREEN_PIN));
-    }
-    if (WiFi.status() == WL_CONNECTED) {
-        rssi_val = WiFi.RSSI();
-        digitalWrite(LED_GREEN_PIN, HIGH);
-        Serial.println(" Connected!");
-        Serial.print("[WIFI] IP: ");
-        Serial.println(WiFi.localIP());
-    } else {
-        Serial.println(" Failed!");
-        digitalWrite(LED_GREEN_PIN, LOW);
-    }
-}
-
-void reconnectMQTT() {
-    String clientId = "BW16_" + String(random(0xffff), HEX);
-    Serial.print("[MQTT] Connecting... ");
-    if (client.connect(clientId.c_str())) {
-        client.subscribe(topic_sub);
-        Serial.println("OK! Subscribed.");
-    } else {
-        Serial.print("Failed rc=");
-        Serial.println(client.state());
-    }
-}
-
-void mqttCallback(char* topic, byte* payload, unsigned int len) {
-    char msg[128];
-    unsigned int l = (len < sizeof(msg) - 1) ? len : sizeof(msg) - 1;
-    memcpy(msg, payload, l);
-    msg[l] = '\0';
-    Serial.print("[RECV] ");
-    Serial.println(msg);
-
-    String s = String(msg);
-    if (s.indexOf("\"angle\"") >= 0) {
-        int idx = s.indexOf("\"angle\":");
-        if (idx >= 0) setServo(s.substring(idx + 8).toInt());
-    }
-    else if (s.indexOf("\"BUZZER_ON\"") >= 0)  { ovr_buzzer = true;  state_buzzer = true;  }
-    else if (s.indexOf("\"BUZZER_OFF\"") >= 0) { ovr_buzzer = true;  state_buzzer = false; }
-    else if (s.indexOf("\"LED_ON\"") >= 0)     { ovr_led = true;     state_led = true;     }
-    else if (s.indexOf("\"LED_OFF\"") >= 0)    { ovr_led = true;     state_led = false;    }
-    else if (s.indexOf("\"RESET_OVR\"") >= 0)  { ovr_buzzer = false; ovr_led = false;      }
-}
-
-// =========================================================================
-//  4. Setup
-// =========================================================================
+// ============================================================
+//  Setup
+// ============================================================
 void setup() {
     Serial.begin(115200);
-    delay(500);
-    Serial.println("\n=================================");
-    Serial.println("  BW16 IRL Flight IoT Payload");
-    Serial.println("=================================");
+    delay(1000);
 
-    pinMode(BUZZER_PIN, OUTPUT);    digitalWrite(BUZZER_PIN, HIGH);  // Buzzer tắt (Active LOW)
-    pinMode(LED_RED_PIN, OUTPUT);   digitalWrite(LED_RED_PIN, LOW);  // LED đỏ tắt
-    pinMode(LED_GREEN_PIN, OUTPUT); digitalWrite(LED_GREEN_PIN, HIGH); // LED xanh sáng ngay
+    Serial.println("==============================");
+    Serial.println("  BW16 Drone IoT Payload");
+    Serial.println("==============================");
+
+    pinMode(BUZZER_PIN, OUTPUT);
+    digitalWrite(BUZZER_PIN, BUZZER_OFF);
+
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LED_OFF);
+
+    pinMode(LED_GREEN_PIN, OUTPUT);
+    digitalWrite(LED_GREEN_PIN, LED_ON);
+
     pinMode(MQ135_PIN, INPUT);
 
-    // Khởi tạo OLED
-    if (display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDR)) {
+
+    if(!display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDR)) {
+        Serial.println("[ERROR] OLED init failed");
+    } else {
         display.clearDisplay();
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
-        display.setCursor(0, 20);
-        display.println("BW16 IRL Payload");
-        display.setCursor(0, 35);
-        display.println("Booting...");
+        display.setCursor(0,10);
+        display.println("Drone IoT Booting...");
         display.display();
-    } else {
-        Serial.println("[ERROR] OLED init failed!");
     }
-
-    // Khởi tạo Hardware PWM Servo (50Hz)
-    pwmout_init(&servo_pwm, SERVO_PIN_HW);
-    pwmout_period_us(&servo_pwm, 20000);
-    setServo(0);  // Khóa chốt ở 0 độ
 
     dht.begin();
     delay(500);
+
     connectWiFi();
 
-    client.setServer(mqtt_server, 1883);
-    client.setCallback(mqttCallback);
-    client.setBufferSize(256);
+    wifiClient.setBlockingMode();
+    client.setServer(mqtt_server, mqtt_port);
+    client.setCallback(callback);
+    client.setKeepAlive(CUSTOM_MQTT_KEEPALIVE);
+
+    Serial.println("[INIT] Setup complete!");
 }
 
-// =========================================================================
-//  5. Main Loop (Non-blocking millis)
-// =========================================================================
+// ============================================================
+//  Main Loop
+// ============================================================
 void loop() {
-    if (WiFi.status() != WL_CONNECTED) connectWiFi();
-    if (!client.connected()) reconnectMQTT();
-    else client.loop();
+    if (WiFi.status() != WL_CONNECTED) {
+        connectWiFi();
+    }
+    if (WiFi.status() == WL_CONNECTED && !client.connected()) {
+        connectMQTT();
+    }
+
+    client.loop();
 
     unsigned long now = millis();
 
-    // Cập nhật sóng WiFi mỗi 5s
-    if (now - lastRssi > RSSI_INTERVAL) {
-        lastRssi = now;
-        if (WiFi.status() == WL_CONNECTED) rssi_val = WiFi.RSSI();
-    }
+    if (now - lastMsg >= interval) {
+        lastMsg = now;
 
-    // Đọc cảm biến mỗi 200ms (Riêng DHT22 đọc mỗi 2s để tránh bị NaN)
-    if (now - lastRead >= INTERVAL_READ) {
-        lastRead = now;
-        
-        if (now - lastDht >= INTERVAL_DHT) {
-            lastDht = now;
-            float t = dht.readTemperature();
-            float h = dht.readHumidity();
-            if (!isnan(t) && !isnan(h)) { temp_val = t; hum_val = h; dht_ok = true; }
-            else { dht_ok = false; }
+        float t_new = dht.readTemperature();
+        float h_new = dht.readHumidity();
+
+        bool dht_ok = true;
+        if (isnan(t_new) || isnan(h_new)) {
+            // [FIX] Giữ nguyên giá trị cũ thay vì về 0
+            // → Tránh OLED và MQTT nhảy 0 xen kẽ
+            dht_ok = false;
+            Serial.println("[DHT] Read failed, keeping last value");
+        } else {
+            temp_val = t_new;
+            hum_val  = h_new;
         }
 
-        mq_val = analogRead(MQ135_PIN);
+        mq_raw_val = analogRead(MQ135_PIN);
+
+
+
         env_alert = (temp_val >= TEMP_THRESHOLD);
-        if (now > MQ135_WARMUP_MS) env_alert = env_alert || (mq_val > CO2_THRESHOLD);
+        if (now > MQ135_WARMUP_MS) {
+            env_alert = env_alert || (mq_raw_val > CO2_THRESHOLD);
+        }
 
-        // Buzzer & LED logic (Nhấp nháy & Beep khi có cảnh báo)
-        bool blink_state = (now / 500) % 2 == 0; // Đảo trạng thái mỗi 500ms
-        
-        bool is_alerting = (ovr_led ? state_led : env_alert);
-        bool is_buzzing = (ovr_buzzer ? state_buzzer : env_alert);
-        
-        digitalWrite(BUZZER_PIN,    is_buzzing ? (blink_state ? LOW : HIGH) : HIGH); // Active LOW
-        digitalWrite(LED_RED_PIN,   is_alerting ? (blink_state ? HIGH : LOW) : LOW); // Active HIGH
-        digitalWrite(LED_GREEN_PIN, is_alerting ? LOW : HIGH); // Tắt xanh khi có cảnh báo
+        if (mqtt_buzzer_override) {
+            digitalWrite(BUZZER_PIN, mqtt_buzzer_state ? BUZZER_ON : BUZZER_OFF);
+        } else {
+            digitalWrite(BUZZER_PIN, env_alert ? BUZZER_ON : BUZZER_OFF);
+        }
 
-        updateOLED();
+        if (mqtt_led_override) {
+            digitalWrite(LED_PIN,       mqtt_led_state ? LED_ON : LED_OFF);
+            digitalWrite(LED_GREEN_PIN, mqtt_led_state ? LED_OFF : LED_ON);
+        } else {
+            digitalWrite(LED_PIN,       env_alert ? LED_ON : LED_OFF);
+            digitalWrite(LED_GREEN_PIN, env_alert ? LED_OFF : LED_ON);
+        }
+
+        char jsonBuf[256];
+        snprintf(jsonBuf, sizeof(jsonBuf),
+            "{\"temp\":%.1f,\"humidity\":%.1f,\"co2\":%d,\"alert\":%d,\"rssi\":%d,\"dht_ok\":%d}",
+            temp_val, hum_val, mq_raw_val, env_alert ? 1 : 0, (int)WiFi.RSSI(), dht_ok ? 1 : 0);
+
+        if (client.connected() && client.publish(topic_sensors, jsonBuf)) {
+            Serial.print("[SEND] ");
+            Serial.println(jsonBuf);
+        } else {
+            Serial.println("[SEND] MQTT publish failed.");
+        }
     }
 
-    // Gửi JSON MQTT mỗi 1000ms
-    if (now - lastPub >= INTERVAL_PUB) {
-        lastPub = now;
-        char json[200];
-        snprintf(json, sizeof(json),
-            "{\"temp\":%.1f,\"humidity\":%.1f,\"co2\":%d,\"servo\":%d,\"alert\":%d,\"rssi\":%d,\"dht_ok\":%d}",
-            temp_val, hum_val, mq_val, servo_angle, env_alert ? 1 : 0, rssi_val, dht_ok ? 1 : 0);
-        if (client.connected() && client.publish(topic_pub, json)) {
-            Serial.print("[SEND] ");
-            Serial.println(json);
+    if (now - lastOLEDUpdate >= oledInterval) {
+        lastOLEDUpdate = now;
+        updateOLED(env_alert);
+    }
+
+
+    // [FIX] Cập nhật RSSI riêng mỗi 5s để không block PWM servo
+    if (now - lastRssiUpdate >= rssiInterval) {
+        lastRssiUpdate = now;
+        if (WiFi.status() == WL_CONNECTED) {
+            cached_rssi = (int)WiFi.RSSI();
         }
     }
 }
