@@ -44,7 +44,7 @@ Toàn bộ dự án được quy hoạch khoa học thành 3 thư mục cốt l�
 
 ```text
 IOT102_DRONE-PROJECT/
-├── README.md                 # Tài liệu tổng quan đồ án (File bạn đang đọc)
+├── README.md # Tài liệu tổng quan đồ án (File bạn đang đọc)
 ├── IRL_FLIGHT_GUIDE.md       # Cẩm nang hướng dẫn bay thật thực địa A-Z
 ├── .gitignore                # Cấu hình bỏ qua tệp tạm & mật khẩu WiFi
 │
