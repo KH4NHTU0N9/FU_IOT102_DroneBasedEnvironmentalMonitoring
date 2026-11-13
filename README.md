@@ -57,7 +57,7 @@ IOT102_DRONE-PROJECT/
 ├── 2_Web_GCS_Dashboard/ # [GIAO DIỆN TRẠM MẶT ĐẤT - GROUND CONTROL STATION]
 │ ├── index.html # Giao diện điều khiển Web Dashboard (Cloud MQTT WebSockets)
 │ ├── assets/css/styles.css # Bảng tạo kiểu tối màu chuyên nghiệp (Dark HUD Design)
-│   └── assets/js/app.js      # Logic xử lý MQTT, biểu đồ Chart.js & điều khiển chốt
+│ └── assets/js/app.js # Logic xử lý MQTT, biểu đồ Chart.js & điều khiển chốt
 │
 └── 3_Academic_Reports/       # [BÁO CÁO HỌC THUẬT & TÀI LIỆU BẢO VỆ]
     ├── academic_report.md    # Báo cáo đồ án toàn văn theo chuẩn học thuật
