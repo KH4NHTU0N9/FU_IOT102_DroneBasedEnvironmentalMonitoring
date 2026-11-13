@@ -15,7 +15,7 @@ Dự án nghiên cứu thiết kế và triển khai một **Hộp Tải Trọng
 
 ---
 
-## 🏗️ KIẾN TRÚC HOẠT ĐỘNG THỰC ĐỊA (DUAL-LAYER FIELD ARCHITECTURE)
+## KIẾN TRÚC HOẠT ĐỘNG THỰC ĐỊA (DUAL-LAYER FIELD ARCHITECTURE)
 
 Nhằm tối ưu độ tin cậy và đảm bảo an toàn tuyệt đối khi bay ngoài trời, hệ thống được thiết kế tách biệt theo **Hai tầng vận hành độc lập (Dual-Layer Architecture)**:
 
