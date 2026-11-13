@@ -72,7 +72,7 @@ IOT102_DRONE-PROJECT/
 | Linh kiện | Chân kết nối trên BW16 | Điện áp | Giao thức | Chức năng trong đồ án |
 | :--- | :--- | :--- | :--- | :--- |
 | **DHT22** | DATA → `PA30`| 3.3V | One-Wire | Đo Nhiệt độ (`°C`) & Độ ẩm (`%`) không khí tại độ cao bay |
-| **MQ-135** | AOUT → `PB3` | 5V | Analog ADC | Đo mức độ ô nhiễm CO2/Khí Gas (`ADC < 600 là SAFE`) |
+| **MQ-135** | AOUT → `PB3`| 5V | Analog ADC | Đo mức độ ô nhiễm CO2/Khí Gas (`ADC < 600 là SAFE`) |
 | **HC-SR04** | TRIG → `PB2`, ECHO → `PB1` | 5V | Ultrasonic | Đo khoảng cách bụng máy bay xuống đất (hỗ trợ canh thả hàng) |
 | **OLED SSD1306** | SDA → `PA26`, SCL → `PA25` | 3.3V | I2C (`0x3C`) | Hiển thị thông số trực tiếp trên vỏ hộp Payload |
 | **Servo SG90** | SIG → `PA13` (`PA_13`) | 5V | Hardware PWM | Cơ cấu chốt xoay `0° - 180°` thả gói hàng xuống đất |
