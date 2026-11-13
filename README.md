@@ -31,7 +31,7 @@ graph TD
     end
 ```
 
-### 💡 Điểm sáng kỹ thuật:
+### Điểm sáng kỹ thuật:
 1. **Độc lập an toàn bay:** Tầng lái máy bay (Cất cánh, di chuyển, hạ cánh) được điều khiển hoàn toàn bằng sóng vô tuyến 2.4GHz có độ trễ cực thấp (< 10ms), không phụ thuộc vào mạng Internet hay máy chủ đám mây.
 2. **Giám sát IoT không dây thời gian thực:** Hộp BW16 tự động bắt WiFi 4G từ điện thoại phát ra, đẩy dữ liệu telemetry môi trường về Public Cloud MQTT với tần suất 1s/lần.
 3. **Hardware PWM Servo Control:** Cơ cấu chốt Servo SG90 thả hàng sử dụng bộ đếm Hardware PWM (`pwmout_api`), đảm bảo chốt mở chính xác tuyệt đối mà không bị xung nhịp WiFi phá sóng như các thư viện Software PWM thông thường.
