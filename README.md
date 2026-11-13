@@ -67,7 +67,7 @@ IOT102_DRONE-PROJECT/
 
 ---
 
-## ⚙️ THÀNH PHẦN PHẦN CỨNG IOT (PAYLOAD HARDWARE)
+## THÀNH PHẦN PHẦN CỨNG IOT (PAYLOAD HARDWARE)
 
 | Linh kiện | Chân kết nối trên BW16 | Điện áp | Giao thức | Chức năng trong đồ án |
 | :--- | :--- | :--- | :--- | :--- |
