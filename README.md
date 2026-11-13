@@ -55,7 +55,7 @@ IOT102_DRONE-PROJECT/
 │ └── secrets.h # Template cấu hình Tên WiFi & Mật khẩu 4G Hotspot
 │
 ├── 2_Web_GCS_Dashboard/ # [GIAO DIỆN TRẠM MẶT ĐẤT - GROUND CONTROL STATION]
-│   ├── index.html            # Giao diện điều khiển Web Dashboard (Cloud MQTT WebSockets)
+│ ├── index.html # Giao diện điều khiển Web Dashboard (Cloud MQTT WebSockets)
 │   ├── assets/css/styles.css # Bảng tạo kiểu tối màu chuyên nghiệp (Dark HUD Design)
 │   └── assets/js/app.js      # Logic xử lý MQTT, biểu đồ Chart.js & điều khiển chốt
 │
