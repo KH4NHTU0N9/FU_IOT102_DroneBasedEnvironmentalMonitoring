@@ -46,7 +46,7 @@ Toàn bộ dự án được quy hoạch khoa học thành 3 thư mục cốt l�
 IOT102_DRONE-PROJECT/
 ├── README.md # Tài liệu tổng quan đồ án (File bạn đang đọc)
 ├── IRL_FLIGHT_GUIDE.md # Cẩm nang hướng dẫn bay thật thực địa A-Z
-├── .gitignore                # Cấu hình bỏ qua tệp tạm & mật khẩu WiFi
+├── .gitignore # Cấu hình bỏ qua tệp tạm & mật khẩu WiFi
 │
 ├── 1_BW16_IoT_Payload/       # [PHẦN CỨNG & FIRMWARE IOT PAYLOAD GẮN TRÊN UAV]
 │   ├── wiring_diagram.md     # Sơ đồ đấu nối chân mạch BW16 với cảm biến & Servo
