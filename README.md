@@ -54,7 +54,7 @@ IOT102_DRONE-PROJECT/
 │ ├── bw16_sensor.ino # Mã nguồn C++ chính (DHT22, MQ-135, Sonar, OLED, HW-PWM Servo)
 │ └── secrets.h # Template cấu hình Tên WiFi & Mật khẩu 4G Hotspot
 │
-├── 2_Web_GCS_Dashboard/      # [GIAO DIỆN TRẠM MẶT ĐẤT - GROUND CONTROL STATION]
+├── 2_Web_GCS_Dashboard/ # [GIAO DIỆN TRẠM MẶT ĐẤT - GROUND CONTROL STATION]
 │   ├── index.html            # Giao diện điều khiển Web Dashboard (Cloud MQTT WebSockets)
 │   ├── assets/css/styles.css # Bảng tạo kiểu tối màu chuyên nghiệp (Dark HUD Design)
 │   └── assets/js/app.js      # Logic xử lý MQTT, biểu đồ Chart.js & điều khiển chốt
