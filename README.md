@@ -76,7 +76,7 @@ IOT102_DRONE-PROJECT/
 | **HC-SR04** | TRIG → `PB2`, ECHO → `PB1`| 5V | Ultrasonic | Đo khoảng cách bụng máy bay xuống đất (hỗ trợ canh thả hàng) |
 | **OLED SSD1306** | SDA → `PA26`, SCL → `PA25`| 3.3V | I2C (`0x3C`) | Hiển thị thông số trực tiếp trên vỏ hộp Payload |
 | **Servo SG90** | SIG → `PA13`(`PA_13`) | 5V | Hardware PWM | Cơ cấu chốt xoay `0° - 180°`thả gói hàng xuống đất |
-| **Buzzer** | I/O → `PA14` | 3.3V | GPIO (Active LOW) | Còi báo động môi trường & phát âm thanh tìm máy bay |
+| **Buzzer** | I/O → `PA14`| 3.3V | GPIO (Active LOW) | Còi báo động môi trường & phát âm thanh tìm máy bay |
 | **LED Cảnh báo** | Đỏ → `PA15`, Xanh → `PA27` | 3.3V | GPIO (Active HIGH) | Đèn báo trạng thái An toàn (`SAFE`) hoặc Cảnh báo (`DANGER`) |
 
 ---
