@@ -96,7 +96,7 @@ IOT102_DRONE-PROJECT/
 ### Bước 2: Mở Giao Diện Trạm Mặt ĐẤT (Web GCS)
 1. Tại sân bay, kết nối Laptop hoặc Smartphone vào cùng mạng WiFi 4G Hotspot.
 2. Mở trực tiếp tệp **[`index.html`](2_Web_GCS_Dashboard/index.html)** bằng trình duyệt Chrome/Firefox (`Ctrl + O`/ `Cmd + O`).
-3. Kiểm tra MQTT Broker để mặc định `broker.hivemq.com` (Port `8000`). Nhấn **Connect**.
+3. Kiểm tra MQTT Broker để mặc định `broker.hivemq.com`(Port `8000`). Nhấn **Connect**.
 4. Khi đèn chuyển sang **`Online`**, bạn có thể quan sát đồ thị cảm biến thực tế và kéo thanh Servo để mở chốt thả hàng ngay lập tức!
 
 ---
