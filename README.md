@@ -84,7 +84,7 @@ IOT102_DRONE-PROJECT/
 ## HƯỚNG DẪN KHỞI ĐỘNG NHANH THỰC ĐỊA (QUICK START)
 
 ### Bước 1: Nạp Firmware vào mạch BW16
-1. Mở `1_BW16_IoT_Payload/bw16_sensor/secrets.h` bằng **Arduino IDE 2.x**.
+1. Mở `1_BW16_IoT_Payload/bw16_sensor/secrets.h`bằng **Arduino IDE 2.x**.
 2. Điền thông tin WiFi 4G Hotspot từ điện thoại của bạn:
    ```cpp
    #define SECRET_SSID "Ten_WiFi_4G_Cua_Ban"
