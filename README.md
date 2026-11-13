@@ -104,7 +104,7 @@ IOT102_DRONE-PROJECT/
 ## TÀI LIỆU THAM KHẢO & BẢO VỆ
 - **Chi tiết quy trình cất cánh ngoài trời:** Xem tại `IRL_FLIGHT_GUIDE.md`.
 - **Bộ câu hỏi bảo vệ trước Hội đồng:** Xem tại `3_Academic_Reports/DEFENSE_FAQ.md`.
-- 📝 **Báo cáo tổng kết môn học:** Xem tại `3_Academic_Reports/academic_report.md`.
+- **Báo cáo tổng kết môn học:** Xem tại `3_Academic_Reports/academic_report.md`.
 
 ---
 > **Tác giả:** Nhóm Phát Triển Đồ Án IOT102 Drone Environmental Payload
