@@ -81,7 +81,7 @@ IOT102_DRONE-PROJECT/
 
 ---
 
-## 🚀 HƯỚNG DẪN KHỞI ĐỘNG NHANH THỰC ĐỊA (QUICK START)
+## HƯỚNG DẪN KHỞI ĐỘNG NHANH THỰC ĐỊA (QUICK START)
 
 ### Bước 1: Nạp Firmware vào mạch BW16
 1. Mở `1_BW16_IoT_Payload/bw16_sensor/secrets.h` bằng **Arduino IDE 2.x**.
