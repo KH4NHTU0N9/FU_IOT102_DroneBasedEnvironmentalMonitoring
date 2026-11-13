@@ -1,5 +1,5 @@
 # Drone IoT — Hệ Thống Giám Sát Môi Trường & Điều Khiển Tải Trọng UAV Thông Minh
-*Dự án đồ án môn học IOT102 — Triển khai Bay Thật Thực Địa (`IRL_test` Branch)*
+*Dự án đồ án môn học IOT102 — Triển khai Bay Thật Thực Địa (`IRL_test`Branch)*
 
 ---
 
