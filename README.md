@@ -9,7 +9,7 @@
 > **NHÁNH BAY THẬT THỰC ĐỊA (`IRL_test`BRANCH):**
 > Nhánh này được tối ưu và cấu hình chuyên biệt cho việc **Kiểm thử & Triển khai Bay Thật ngoài trời (In-Real-Life Field Testing)** với Quadcopter 5 inch (`Motor MT2204 + ESC 55A + Flight Controller + Tay cầm MC6C + Pin 4S 1800mAh`) kết hợp Hộp tải trọng IoT không dây độc lập (`Realtek BW16 + WiFi 4G Hotspot + Cloud MQTT`).
 > 
-> 👉 **Xem ngay cẩm nang hướng dẫn chi tiết từng bước ra sân bay tại:** **[`IRL_FLIGHT_GUIDE.md`](file:///Users/trankhanhtuong/Desktop/IOT102_DRONE-PROJECT/IRL_FLIGHT_GUIDE.md)**
+> **Xem ngay cẩm nang hướng dẫn chi tiết từng bước ra sân bay tại:** **[`IRL_FLIGHT_GUIDE.md`](IRL_FLIGHT_GUIDE.md)**
 
 Dự án nghiên cứu thiết kế và triển khai một **Hộp Tải Trọng IoT Thông Minh (Smart IoT Payload Box)** gắn dưới bụng máy bay không người lái (UAV Quadcopter). Hệ thống sử dụng vi điều khiển **Realtek Ameba BW16 (RTL8720DN)** chuẩn WiFi băng tần kép để thu thập các chỉ số môi trường theo thời gian thực (Nhiệt độ, Độ ẩm, Khí Gas/CO2, Khoảng cách Sonar) và cho phép điều khiển cơ cấu chốt Servo thả hàng cứu trợ/mô hình từ xa thông qua giao thức **MQTT Cloud** và **Web Control Dashboard**.
 
