@@ -52,7 +52,7 @@ IOT102_DRONE-PROJECT/
 │ ├── wiring_diagram.md # Sơ đồ đấu nối chân mạch BW16 với cảm biến & Servo
 │ └── bw16_sensor/
 │ ├── bw16_sensor.ino # Mã nguồn C++ chính (DHT22, MQ-135, Sonar, OLED, HW-PWM Servo)
-│       └── secrets.h         # Template cấu hình Tên WiFi & Mật khẩu 4G Hotspot
+│ └── secrets.h # Template cấu hình Tên WiFi & Mật khẩu 4G Hotspot
 │
 ├── 2_Web_GCS_Dashboard/      # [GIAO DIỆN TRẠM MẶT ĐẤT - GROUND CONTROL STATION]
 │   ├── index.html            # Giao diện điều khiển Web Dashboard (Cloud MQTT WebSockets)
