@@ -61,7 +61,7 @@ IOT102_DRONE-PROJECT/
 │
 └── 3_Academic_Reports/ # [BÁO CÁO HỌC THUẬT & TÀI LIỆU BẢO VỆ]
     ├── academic_report.md # Báo cáo đồ án toàn văn theo chuẩn học thuật
-    ├── checklist.md          # Bảng tự đánh giá tiêu chuẩn kỹ thuật đồ án
+    ├── checklist.md # Bảng tự đánh giá tiêu chuẩn kỹ thuật đồ án
     └── DEFENSE_FAQ.md        # Bộ câu hỏi phản biện từ Hội đồng & lời giải chi tiết
 ```
 
