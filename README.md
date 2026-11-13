@@ -38,7 +38,7 @@ graph TD
 
 ---
 
-## 📦 CẤU TRÚC THƯ MỤC CHUẨN (PROJECT DIRECTORY STRUCTURE)
+## CẤU TRÚC THƯ MỤC CHUẨN (PROJECT DIRECTORY STRUCTURE)
 
 Toàn bộ dự án được quy hoạch khoa học thành 3 thư mục cốt lõi:
 
