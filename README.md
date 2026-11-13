@@ -3,7 +3,7 @@
 
 ---
 
-## 🌟 TỔNG QUAN DỰ ÁN (PROJECT OVERVIEW)
+## TỔNG QUAN DỰ ÁN (PROJECT OVERVIEW)
 
 > [!IMPORTANT]
 > 🌐 **NHÁNH BAY THẬT THỰC ĐỊA (`IRL_test` BRANCH):**
