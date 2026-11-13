@@ -60,7 +60,7 @@ IOT102_DRONE-PROJECT/
 │ └── assets/js/app.js # Logic xử lý MQTT, biểu đồ Chart.js & điều khiển chốt
 │
 └── 3_Academic_Reports/ # [BÁO CÁO HỌC THUẬT & TÀI LIỆU BẢO VỆ]
-    ├── academic_report.md    # Báo cáo đồ án toàn văn theo chuẩn học thuật
+    ├── academic_report.md # Báo cáo đồ án toàn văn theo chuẩn học thuật
     ├── checklist.md          # Bảng tự đánh giá tiêu chuẩn kỹ thuật đồ án
     └── DEFENSE_FAQ.md        # Bộ câu hỏi phản biện từ Hội đồng & lời giải chi tiết
 ```
