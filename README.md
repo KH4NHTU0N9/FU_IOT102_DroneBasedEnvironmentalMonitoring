@@ -49,7 +49,7 @@ IOT102_DRONE-PROJECT/
 ├── .gitignore # Cấu hình bỏ qua tệp tạm & mật khẩu WiFi
 │
 ├── 1_BW16_IoT_Payload/ # [PHẦN CỨNG & FIRMWARE IOT PAYLOAD GẮN TRÊN UAV]
-│   ├── wiring_diagram.md     # Sơ đồ đấu nối chân mạch BW16 với cảm biến & Servo
+│ ├── wiring_diagram.md # Sơ đồ đấu nối chân mạch BW16 với cảm biến & Servo
 │   └── bw16_sensor/
 │       ├── bw16_sensor.ino   # Mã nguồn C++ chính (DHT22, MQ-135, Sonar, OLED, HW-PWM Servo)
 │       └── secrets.h         # Template cấu hình Tên WiFi & Mật khẩu 4G Hotspot
